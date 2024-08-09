@@ -75,24 +75,6 @@ After building, you can:
 - **Create a bootable ISO** for distribution or personal use.
 - **Customize further** by modifying the build scripts and configuration files.
 
-### Building a Custom ISO
-
-To build a custom ISO:
-
-```bash
-./build.sh iso
-```
-
-This command will generate a bootable ISO file in the `output` directory.
-
-## Directory Structure
-
-- **configs/**: Configuration files for the build process.
-- **scripts/**: Helper scripts used during the build process.
-- **packages/**: Package definitions and build scripts.
-- **output/**: Directory where the built components and ISO images are stored.
-- **docs/**: Documentation related to the build process and usage.
-
 ## Contributing
 
 We welcome contributions from the community! If you'd like to contribute, please follow these steps:
@@ -112,7 +94,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Support
 
-If you encounter any issues or have questions, feel free to open an issue in the repository or contact us through the [LiberoLinux community forums](https://libero.eu.org/community).
+If you encounter any issues or have questions, feel free to open an issue in the repository or contact us through the [Libero GNU/Linux Community Forums](https://libero.eu.org/community).
 
 ---
 
