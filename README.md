@@ -9,7 +9,6 @@ Welcome to the **Libero GNU/Linux Build** repository! This project provides the 
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Usage](#usage)
-- [Directory Structure](#directory-structure)
 - [Contributing](#contributing)
 - [License](#license)
 - [Support](#support)
