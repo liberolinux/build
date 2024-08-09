@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+# Set the environment variables
+export LIBERO=/mnt/libero
+export LC_ALL=POSIX
+export LIBERO_TGT=$(uname -m)-libero-linux-gnu
+
+# If 05PrepChrootEnv.log does not exists then create it
+if [ ! -f "$LIBERO/sources/05PrepChrootEnv.log" ]; then
+    sudo touch $LIBERO/sources/05PrepChrootEnv.log
+fi
+
+# If error occurs, write error to a file
+exec 2> $LIBERO/05PrepChrootEnv.log
+
+# Chapter 7 of Linux From Scratch
+echo "" 
+echo "Welcome to Chapter 7 of Linux From Scratch"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Change the ownership of the $LIBERO/* directories to
+# user root by running the following command
+if [ "$(stat -c '%U' $LIBERO/usr)" != "root" ]; then
+    sudo chown -R root:root $LIBERO/{usr,lib,var,etc,bin,sbin,tools}
+fi
+
+case $(uname -m) in
+    x86_64) chown -R root:root $LIBERO/usr/lib64 ;;
+esac
+
+# Begin by creating the directories on which
+# these virtual file systems will be mounted
+if [ ! -d "$LIBERO/dev" ]; then
+    sudo mkdir -pv "$LIBERO/dev"
+fi
+
+if [ ! -d "$LIBERO/proc" ]; then
+    sudo mkdir -pv "$LIBERO/proc"
+fi
+
+if [ ! -d "$LIBERO/sys" ]; then
+    sudo mkdir -pv "$LIBERO/sys"
+fi
+
+if [ ! -d "$LIBERO/run" ]; then
+    sudo mkdir -pv "$LIBERO/run"
+fi
+
+# First, unmount the virtual kernel file systems
+if mountpoint -q $LIBERO/dev; then
+    sudo mount -fv $LIBERO/dev
+fi
+
+if mountpoint -q $LIBERO/dev/pts; then
+    sudo umount -fv $LIBERO/dev/pts
+fi
+
+if mountpoint -q $LIBERO/proc; then
+    sudo umount -fv $LIBERO/proc
+fi
+
+if mountpoint -q $LIBERO/sys; then
+    sudo umount -fv $LIBERO/sys
+fi
+
+if mountpoint -q $LIBERO/run; then
+    sudo umount -fv $LIBERO/run
+fi
+
+# Creating Initial Device Nodes
+sudo mknod -m 666 $LIBERO/dev/null c 1 3
+sudo mknod -m 666 $LIBERO/dev/zero c 1 5
+sudo mknod -m 666 $LIBERO/dev/full c 1 7
+sudo mknod -m 666 $LIBERO/dev/random c 1 8
+sudo mknod -m 666 $LIBERO/dev/urandom c 1 9
+sudo mknod -m 666 $LIBERO/dev/tty c 5 0
+sudo mknod -m 600 $LIBERO/dev/console c 5 1
+
+# Then, mount the virtual kernel file systems
+if ! mountpoint -q $LIBERO/dev; then
+    sudo mount -v --bind /dev $LIBERO/dev
+fi
+
+if ! mountpoint -q $LIBERO/dev/pts; then
+    sudo mount -v --bind /dev/pts $LIBERO/dev/pts
+fi
+
+if ! mountpoint -q $LIBERO/proc; then
+    sudo mount -vt proc proc $LIBERO/proc
+fi
+
+if ! mountpoint -q $LIBERO/sys; then
+    sudo mount -vt sysfs sysfs $LIBERO/sys
+fi
+
+if ! mountpoint -q $LIBERO/run; then
+    sudo mount -vt tmpfs tmpfs $LIBERO/run
+fi
+
+# In other host systems /dev/shm is a mount point for a tmpfs.
+# In that case the mount of /dev above will only create /dev/shm as
+# a directory in the chroot environment.
+# In this situation we must explicitly mount a tmpfs
+if [ -h $LIBERO/dev/shm ]; then
+    sudo mkdir -pv $LIBERO/$(readlink $LIBERO/dev/shm)
+else
+    sudo mount -vt tmpfs -o nosuid,nodev tmpfs $LIBERO/dev/shm
+fi
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+
+sudo chroot "$LIBERO" /usr/bin/env -i       \
+    HOME=/root                              \
+    TERM="$TERM"                            \
+    PS1='(libero chroot) \u:\w\$ '          \
+    PATH=/usr/bin:/usr/sbin                 \
+    /bin/bash --login

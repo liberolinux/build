@@ -1,0 +1,306 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+# Set the environment variables
+export LC_ALL=POSIX
+export LIBERO_TGT=$(uname -m)-libero-linux-gnu
+
+# If 06ChrootEnv.log does not exists then create it
+if [ ! -f "/sources/06ChrootEnv.log" ]; then
+    touch /sources/06ChrootEnv.log
+fi
+
+# If error occurs, write error to a file
+exec 2> /sources/06ChrootEnv.log
+
+# Create some root-level directories that are not in the limited
+# set required in the previous chapters by issuing the following command
+if [ ! -d "/boot" ]; then
+    mkdir -pv "/boot"
+fi
+
+if [ ! -d "/home" ]; then
+    mkdir -pv "/home"
+fi
+
+if [ ! -d "/mnt" ]; then
+    mkdir -pv "/mnt"
+fi
+
+if [ ! -d "/opt" ]; then
+    mkdir -pv "/opt"
+fi
+
+if [ ! -d "/srv" ]; then
+    mkdir -pv "/srv"
+fi
+
+# Create the required set of subdirectories below the
+# root-level by issuing the following commands
+if [ ! -d "/etc/opt" ]; then
+    mkdir -pv "/etc/opt"
+fi
+
+if [ ! -d "/etc/sysconfig" ]; then
+    mkdir -pv "/etc/sysconfig"
+fi
+
+if [ ! -d "/lib/firmware" ]; then
+    mkdir -pv "/lib/firmware"
+fi
+
+if [ ! -d "/media/floppy" ]; then
+    mkdir -pv "/media/floppy"
+fi
+
+if [ ! -d "/media/cdrom" ]; then
+    mkdir -pv "/media/cdrom"
+fi
+
+if [ ! -d "/usr/include" ]; then
+    mkdir -pv "/usr/include"
+fi
+
+if [ ! -d "/usr/src" ]; then
+    mkdir -pv "/usr/src"
+fi
+
+if [ ! -d "/usr/share/color" ]; then
+    mkdir -pv "/usr/share/color"
+fi
+
+if [ ! -d "/usr/share/dict" ]; then
+    mkdir -pv "/usr/share/dict"
+fi
+
+if [ ! -d "/usr/share/doc" ]; then
+    mkdir -pv "/usr/share/doc"
+fi
+
+if [ ! -d "/usr/share/info" ]; then
+    mkdir -pv "/usr/share/info"
+fi
+
+if [ ! -d "/usr/share/locale" ]; then
+    mkdir -pv "/usr/share/locale"
+fi
+
+if [ ! -d "/usr/share/man" ]; then
+    mkdir -pv "/usr/share/man"
+fi
+
+if [ ! -d "/usr/share/misc" ]; then
+    mkdir -pv "/usr/share/misc"
+fi
+
+if [ ! -d "/usr/share/terminfo" ]; then
+    mkdir -pv "/usr/share/terminfo"
+fi
+
+if [ ! -d "/usr/share/zoneinfo" ]; then
+    mkdir -pv "/usr/share/zoneinfo"
+fi
+
+if [ ! -d "/usr/share/man/man1" ]; then
+    mkdir -pv "/usr/share/man/man1"
+fi
+
+if [ ! -d "/usr/share/man/man2" ]; then
+    mkdir -pv "/usr/share/man/man2"
+fi
+
+if [ ! -d "/usr/share/man/man3" ]; then
+    mkdir -pv "/usr/share/man/man3"
+fi
+
+if [ ! -d "/usr/share/man/man4" ]; then
+    mkdir -pv "/usr/share/man/man4"
+fi
+
+if [ ! -d "/usr/share/man/man5" ]; then
+    mkdir -pv "/usr/share/man/man5"
+fi
+
+if [ ! -d "/usr/share/man/man6" ]; then
+    mkdir -pv "/usr/share/man/man6"
+fi
+
+if [ ! -d "/usr/share/man/man7" ]; then
+    mkdir -pv "/usr/share/man/man7"
+fi
+
+if [ ! -d "/usr/share/man/man8" ]; then
+    mkdir -pv "/usr/share/man/man8"
+fi
+
+if [ ! -d "/var/cache" ]; then
+    mkdir -pv "/var/cache"
+fi
+
+if [ ! -d "/var/local" ]; then
+    mkdir -pv "/var/local"
+fi
+
+if [ ! -d "/var/log" ]; then
+    mkdir -pv "/var/log"
+fi
+
+if [ ! -d "/var/mail" ]; then
+    mkdir -pv "/var/mail"
+fi
+
+if [ ! -d "/var/opt" ]; then
+    mkdir -pv "/var/opt"
+fi
+
+if [ ! -d "/var/spool" ]; then
+    mkdir -pv "/var/spool"
+fi
+
+if [ ! -d "/var/lib/color" ]; then
+    mkdir -pv "/var/lib/color"
+fi
+
+if [ ! -d "/var/lib/misc" ]; then
+    mkdir -pv "/var/lib/misc"
+fi
+
+if [ ! -d "/var/lib/locate" ]; then
+    mkdir -pv "/var/lib/locate"
+fi
+
+if [ ! -L "/var/run" ]; then
+    ln -sfv /run /var/run
+fi
+
+if [ ! -L "/var/lock" ]; then
+    ln -sfv /run/lock /var/lock
+fi
+
+if [ ! -d "/root" ]; then
+    install -dv -m 0750 /root
+fi
+
+if [ ! -d "/tmp" ]; then
+    install -dv -m 1777 /tmp
+fi
+
+if [ ! -d "/var/tmp" ]; then
+    install -dv -m 1777 /var/tmp
+fi
+
+# Create the following symbolic link
+if [ ! -L "/etc/mtab" ]; then
+    ln -sv /proc/self/mounts /etc/mtab
+fi
+
+# Create a basic /etc/hosts
+cat > /etc/hosts << EOF
+127.0.0.1  localhost $(hostname)
+::1        localhost
+EOF
+
+# Create the /etc/passwd
+cat > /etc/passwd << "EOF"
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/dev/null:/usr/bin/false
+daemon:x:6:6:Daemon User:/dev/null:/usr/bin/false
+messagebus:x:18:18:D-Bus Message Daemon User:/run/dbus:/usr/bin/false
+systemd-journal-gateway:x:73:73:systemd Journal Gateway:/:/usr/bin/false
+systemd-journal-remote:x:74:74:systemd Journal Remote:/:/usr/bin/false
+systemd-journal-upload:x:75:75:systemd Journal Upload:/:/usr/bin/false
+systemd-network:x:76:76:systemd Network Management:/:/usr/bin/false
+systemd-resolve:x:77:77:systemd Resolver:/:/usr/bin/false
+systemd-timesync:x:78:78:systemd Time Synchronization:/:/usr/bin/false
+systemd-coredump:x:79:79:systemd Core Dumper:/:/usr/bin/false
+uuidd:x:80:80:UUID Generation Daemon User:/dev/null:/usr/bin/false
+systemd-oom:x:81:81:systemd Out Of Memory Daemon:/:/usr/bin/false
+nobody:x:65534:65534:Unprivileged User:/dev/null:/usr/bin/false
+EOF
+
+# Create the /etc/group
+cat > /etc/group << "EOF"
+root:x:0:
+bin:x:1:daemon
+sys:x:2:
+kmem:x:3:
+tape:x:4:
+tty:x:5:
+daemon:x:6:
+floppy:x:7:
+disk:x:8:
+lp:x:9:
+dialout:x:10:
+audio:x:11:
+video:x:12:
+utmp:x:13:
+cdrom:x:15:
+adm:x:16:
+messagebus:x:18:
+systemd-journal:x:23:
+input:x:24:
+mail:x:34:
+kvm:x:61:
+systemd-journal-gateway:x:73:
+systemd-journal-remote:x:74:
+systemd-journal-upload:x:75:
+systemd-network:x:76:
+systemd-resolve:x:77:
+systemd-timesync:x:78:
+systemd-coredump:x:79:
+uuidd:x:80:
+systemd-oom:x:81:
+wheel:x:97:
+users:x:999:
+nogroup:x:65534:
+EOF
+
+# Some tests in Chapter 8 need a regular user
+echo "tester:x:101:101::/home/tester:/bin/bash" >> /etc/passwd
+echo "tester:x:101:" >> /etc/group
+install -o tester -d /home/tester
+
+# The login, agetty, and init programs (and others) use a number of
+# log files to record information such as who was logged into the system and when.
+# However, these programs will not write to the log files if they do not already exist.
+# Initialize the log files and give them proper permissions
+touch /var/log/{btmp,lastlog,faillog,wtmp}
+chgrp -v utmp /var/log/lastlog
+chmod -v 664  /var/log/lastlog
+chmod -v 600  /var/log/btmp
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Remove the “I have no name!” prompt, start a new shell
+# Run the following command to start a new shell
+# exec /usr/bin/bash --login

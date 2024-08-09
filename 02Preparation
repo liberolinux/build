@@ -1,0 +1,539 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+# Set up environment variables for the build process
+export LIBERO=/mnt/libero
+export LC_ALL=POSIX
+
+DEVICE=/dev/sdc
+
+acl_version="2.3.2"
+attr_version="2.5.2"
+autoconf_version="2.72"
+automake_version="1.16.5"
+bash_version="5.2.21"
+bc_version="6.7.5"
+binutils_version="2.42"
+bison_version="3.8.2"
+bzip2_version="1.0.8"
+check_version="0.15.2"
+coreutils_version="9.4"
+dbus_version="1.14.10"
+dejagnu_version="1.6.3"
+diffutils_version="3.10"
+e2fsprogs_version="1.47.0"
+efibootmgr_version="18"
+efivar_version="38"
+elfutils_version="0.190"
+expat_version="2.6.2"
+expect_version="5.45.4"
+file_version="5.45"
+findutils_version="4.9.0"
+flex_version="2.6.4"
+flit_core_version="3.9.0"
+freetype_version="2.13.2"
+gawk_version="5.3.0"
+gcc_version="13.2.0"
+gdbm_version="1.23"
+gettext_version="0.22.4"
+glibc_version="2.39"
+gmp_version="6.3.0"
+gperf_version="3.1"
+grep_version="3.11"
+groff_version="1.23.0"
+grub_version="2.06"
+gzip_version="1.13"
+iana_etc_version="20240125"
+inetutils_version="2.5"
+intltool_version="0.51.0"
+iproute2_version="6.7.0"
+jinja2_version="3.1.3"
+kbd_version="2.6.4"
+kmod_version="31"
+less_version="643"
+libcap_version="2.69"
+libffi_version="3.4.4"
+libpipeline_version="1.5.7"
+libpng_version="1.6.43"
+libtool_version="2.4.7"
+libxcrypt_version="4.4.36"
+linux_version="6.9.10"
+m4_version="1.4.19"
+make_version="4.4.1"
+man_db_version="2.12.0"
+man_pages_version="6.06"
+markup_safe_version="2.1.5"
+meson_version="1.3.2"
+mpc_version="1.3.1"
+mpfr_version="4.2.1"
+ncurses_version="6.4"
+ninja_version="1.11.1"
+openssl_version="3.2.1"
+patch_version="2.7.6"
+perl_version="5.38.2"
+pkgconf_version="2.1.1"
+popt_version="1.19"
+procps_ng_version="4.0.4"
+psmisc_version="23.6"
+python_version="3.11.9"
+readline_version="8.2"
+sed_version="4.9"
+setuptools_version="69.1.0"
+shadow_version="4.14.5"
+systemd_version="256.4"
+tar_version="1.35"
+tcl_version="8.6.13"
+texinfo_version="7.1"
+tzdata_version="2024a"
+util_linux_version="2.39.3"
+vim_version="9.1.0041"
+wheel_version="0.42.0"
+which_version="2.21"
+xml_parser_version="2.47"
+xz_version="5.4.6"
+zlib_version="1.3.1"
+zstd_version="1.5.5"
+
+# Remove user libero if it exists
+if id "libero" >/dev/null 2>&1; then
+    sudo userdel libero
+fi
+
+# Remove group libero if it exists
+if getent group "libero" >/dev/null 2>&1; then
+    sudo groupdel libero
+fi
+
+# Remove /home/libero if defined
+if [ -d "/home/libero" ]; then
+    sudo rm -rfv /home/libero
+fi
+
+# Check if the partitions are already mounted
+if grep -qs '$LIBERO/boot' /proc/mounts; then
+    sudo umount -fv $LIBERO/boot
+fi
+
+if grep -qs '$LIBERO' /proc/mounts; then
+    sudo umount -fv $LIBERO
+fi
+
+# Create a new boot UEFI partition
+sudo parted $DEVICE mklabel gpt
+sudo parted $DEVICE mkpart primary fat32 1MiB 1GB
+sudo parted $DEVICE set 1 esp on
+sudo mkfs.fat -F32 -n BOOT ${DEVICE}1
+
+# Create a new partition for LIBERO system
+sudo parted $DEVICE mkpart primary ext4 1GB 100%
+sudo mkfs -v -t ext4 ${DEVICE}2
+sudo e2label ${DEVICE}2 Libero
+
+# Create a new directory for LIBERO system if it doesn't exist
+if [ ! -d "$LIBERO" ]; then
+    sudo mkdir -pv $LIBERO
+fi
+
+# Check if the partitions are already mounted
+if grep -qs '$LIBERO' /proc/mounts; then
+    echo "LIBERO partition is already mounted"
+else
+    # Mount the new partition to the LIBERO directory
+    sudo mount -v -t ext4 ${DEVICE}2 /mnt/libero
+fi
+
+if grep -qs '$LIBERO/boot' /proc/mounts; then
+    echo "Boot partition is already mounted"
+else
+    sudo mkdir -pv $LIBERO/boot
+    sudo mount -v -t vfat ${DEVICE}1 $LIBERO/boot
+fi
+
+if [ ! -d "$LIBERO/tools" ]; then
+    sudo mkdir -v $LIBERO/tools
+fi
+if [ ! -L "/tools" ]; then
+    sudo ln -sv $LIBERO/tools /
+fi
+
+if [ ! -d "$LIBERO/sources" ]; then
+    sudo mkdir -pv $LIBERO/sources
+fi
+
+# If 02Preparation.log does not exists then create it
+if [ ! -f "$LIBERO/sources/02Preparation.log" ]; then
+    sudo touch $LIBERO/sources/02Preparation.log
+    sudo chmod 777 $LIBERO/sources/02Preparation.log
+fi
+
+# If error occurs, write error to a file
+exec 2> $LIBERO/sources/02Preparation.log
+
+# Download all source packages and patches
+# Replace <url> with the appropriate URL for the package
+urls=(
+        https://download.savannah.gnu.org/releases/acl/acl-$acl_version.tar.xz \
+        https://download.savannah.gnu.org/releases/attr/attr-$attr_version.tar.gz \
+        https://ftp.gnu.org/gnu/autoconf/autoconf-$autoconf_version.tar.xz \
+        https://ftp.gnu.org/gnu/automake/automake-$automake_version.tar.xz \
+        https://ftp.gnu.org/gnu/bash/bash-$bash_version.tar.gz \
+        https://github.com/gavinhoward/bc/releases/download/$bc_version/bc-$bc_version.tar.xz \
+        https://sourceware.org/pub/binutils/releases/binutils-$binutils_version.tar.xz \
+        https://ftp.gnu.org/gnu/bison/bison-$bison_version.tar.xz \
+        https://www.sourceware.org/pub/bzip2/bzip2-$bzip2_version.tar.gz \
+        https://github.com/libcheck/check/releases/download/$check_version/check-$check_version.tar.gz \
+        https://ftp.gnu.org/gnu/coreutils/coreutils-$coreutils_version.tar.xz \
+        https://dbus.freedesktop.org/releases/dbus/dbus-$dbus_version.tar.xz \
+        https://ftp.gnu.org/gnu/dejagnu/dejagnu-$dejagnu_version.tar.gz \
+        https://ftp.gnu.org/gnu/diffutils/diffutils-$diffutils_version.tar.xz \
+        https://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v$e2fsprogs_version/e2fsprogs-$e2fsprogs_version.tar.gz \
+        https://github.com/rhboot/efibootmgr/archive/18/efibootmgr-$efibootmgr_version.tar.gz \
+        https://github.com/rhboot/efivar/releases/download/38/efivar-$efivar_version.tar.bz2 \
+        https://sourceware.org/ftp/elfutils/$elfutils_version/elfutils-$elfutils_version.tar.bz2 \
+        https://kumisystems.dl.sourceforge.net/project/expat/expat/$expat_version/expat-$expat_version.tar.xz \
+        https://prdownloads.sourceforge.net/expect/expect$expect_version.tar.gz \
+        https://astron.com/pub/file/file-$file_version.tar.gz \
+        https://ftp.gnu.org/gnu/findutils/findutils-$findutils_version.tar.xz \
+        https://github.com/westes/flex/releases/download/v$flex_version/flex-$flex_version.tar.gz \
+        https://pypi.org/packages/source/f/flit-core/flit_core-$flit_core_version.tar.gz \
+        https://downloads.sourceforge.net/freetype/freetype-$freetype_version.tar.xz \
+        https://ftp.gnu.org/gnu/gawk/gawk-$gawk_version.tar.xz \
+        https://ftp.gnu.org/gnu/gcc/gcc-$gcc_version/gcc-$gcc_version.tar.xz \
+        https://ftp.gnu.org/gnu/gdbm/gdbm-$gdbm_version.tar.gz \
+        https://ftp.gnu.org/gnu/gettext/gettext-$gettext_version.tar.xz \
+        https://ftp.gnu.org/gnu/glibc/glibc-$glibc_version.tar.xz \
+        https://ftp.gnu.org/gnu/gmp/gmp-$gmp_version.tar.xz \
+        https://ftp.gnu.org/gnu/gperf/gperf-$gperf_version.tar.gz \
+        https://ftp.gnu.org/gnu/grep/grep-$grep_version.tar.xz \
+        https://ftp.gnu.org/gnu/groff/groff-$groff_version.tar.gz \
+        https://ftp.gnu.org/gnu/grub/grub-$grub_version.tar.xz \
+        https://ftp.gnu.org/gnu/gzip/gzip-$gzip_version.tar.xz \
+        https://github.com/Mic92/iana-etc/releases/download/$iana_etc_version/iana-etc-$iana_etc_version.tar.gz \
+        https://ftp.gnu.org/gnu/inetutils/inetutils-$inetutils_version.tar.xz \
+        https://launchpad.net/intltool/trunk/$intltool_version/+download/intltool-$intltool_version.tar.gz \
+        https://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-$iproute2_version.tar.xz \
+        https://pypi.org/packages/source/J/Jinja2/Jinja2-$jinja2_version.tar.gz \
+        https://www.kernel.org/pub/linux/utils/kbd/kbd-$kbd_version.tar.xz \
+        https://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-$kmod_version.tar.xz \
+        https://www.greenwoodsoftware.com/less/less-$less_version.tar.gz \
+        https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-$libcap_version.tar.xz \
+        https://github.com/libffi/libffi/releases/download/v$libffi_version/libffi-$libffi_version.tar.gz \
+        https://download.savannah.gnu.org/releases/libpipeline/libpipeline-$libpipeline_version.tar.gz \
+        https://downloads.sourceforge.net/libpng/libpng-$libpng_version.tar.xz \
+        https://ftp.gnu.org/gnu/libtool/libtool-$libtool_version.tar.xz \
+        https://github.com/besser82/libxcrypt/releases/download/v$libxcrypt_version/libxcrypt-$libxcrypt_version.tar.xz \
+        https://www.kernel.org/pub/linux/kernel/v6.x/linux-$linux_version.tar.xz \
+        https://ftp.gnu.org/gnu/m4/m4-$m4_version.tar.xz \
+        https://ftp.gnu.org/gnu/make/make-$make_version.tar.gz \
+        https://download.savannah.gnu.org/releases/man-db/man-db-$man_db_version.tar.xz \
+        https://www.kernel.org/pub/linux/docs/man-pages/man-pages-$man_pages_version.tar.xz \
+        https://pypi.org/packages/source/M/MarkupSafe/MarkupSafe-$markup_safe_version.tar.gz \
+        https://github.com/mesonbuild/meson/releases/download/$meson_version/meson-$meson_version.tar.gz \
+        https://ftp.gnu.org/gnu/mpc/mpc-$mpc_version.tar.gz \
+        https://ftp.gnu.org/gnu/mpfr/mpfr-$mpfr_version.tar.xz \
+        https://invisible-mirror.net/archives/ncurses/ncurses-$ncurses_version.tar.gz \
+        https://github.com/ninja-build/ninja/archive/v$ninja_version/ninja-$ninja_version.tar.gz \
+        https://www.openssl.org/source/openssl-$openssl_version.tar.gz \
+        https://ftp.gnu.org/gnu/patch/patch-$patch_version.tar.xz \
+        https://www.cpan.org/src/5.0/perl-$perl_version.tar.xz \
+        https://distfiles.ariadne.space/pkgconf/pkgconf-$pkgconf_version.tar.xz \
+        http://ftp.rpm.org/popt/releases/popt-1.x/popt-$popt_version.tar.gz \
+        https://sourceforge.net/projects/procps-ng/files/Production/procps-ng-$procps_ng_version.tar.xz \
+        https://sourceforge.net/projects/psmisc/files/psmisc/psmisc-$psmisc_version.tar.xz \
+        https://www.python.org/ftp/python/$python_version/Python-$python_version.tar.xz \
+        https://ftp.gnu.org/gnu/readline/readline-$readline_version.tar.gz \
+        https://ftp.gnu.org/gnu/sed/sed-$sed_version.tar.xz \
+        https://pypi.org/packages/source/s/setuptools/setuptools-$setuptools_version.tar.gz \
+        https://github.com/shadow-maint/shadow/releases/download/$shadow_version/shadow-$shadow_version.tar.xz \
+        https://github.com/systemd/systemd/archive/v$systemd_version/systemd-$systemd_version.tar.gz \
+        https://ftp.gnu.org/gnu/tar/tar-$tar_version.tar.xz \
+        https://downloads.sourceforge.net/tcl/tcl$tcl_version-src.tar.gz \
+        https://ftp.gnu.org/gnu/texinfo/texinfo-$texinfo_version.tar.xz \
+        https://www.iana.org/time-zones/repository/releases/tzdata$tzdata_version.tar.gz \
+        https://www.kernel.org/pub/linux/utils/util-linux/v2.39/util-linux-$util_linux_version.tar.xz \
+        https://github.com/vim/vim/archive/v$vim_version/vim-$vim_version.tar.gz \
+        https://pypi.org/packages/source/w/wheel/wheel-$wheel_version.tar.gz \
+        https://ftp.gnu.org/gnu/which/which-$which_version.tar.gz \
+        https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-$xml_parser_version.tar.gz \
+        https://tukaani.org/xz/xz-$xz_version.tar.xz \
+        https://zlib.net/fossils/zlib-$zlib_version.tar.gz \
+        https://github.com/facebook/zstd/releases/download/v$zstd_version/zstd-$zstd_version.tar.gz \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/bash-5.2.21-upstream_fixes-1.patch \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/bzip2-1.0.8-install_docs-1.patch \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/coreutils-9.4-i18n-1.patch \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/glibc-2.39-fhs-1.patch \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/kbd-2.6.4-backspace-1.patch \
+        https://www.linuxfromscratch.org/patches/lfs/12.1/readline-8.2-upstream_fixes-3.patch \
+        https://www.linuxfromscratch.org/lfs/downloads/12.1-systemd/md5sums
+)
+
+total_packages=0
+total_patches=0
+
+total=${#urls[@]}
+progress=0
+
+for url in "${urls[@]}"; do
+    # Download the file
+    if sudo wget -P $LIBERO/sources $url; then
+        # Check if downloaded file is a tar.*
+        if [[ "$url" == *.tar.* ]]; then
+            total_packages=$((total_packages + 1))
+        fi
+
+        # Check if downloaded file is a *.patch
+        if [[ "$url" == *.patch ]]; then
+            total_patches=$((total_patches + 1))
+        fi
+
+        # Update the progress bar
+        progress=$((progress + 1))
+        percent=$((progress * 100 / total))
+        package_num=$(printf "[%d/%d]" "$progress" "$total")
+        printf "%s [%3d%%] Downloaded %s\n\n" "$package_num" "$percent" "$(basename "$url")"
+    else
+        #If not created not_downloaded.txt file, create it
+        if [ ! -f "$LIBERO/sources/not_downloaded.txt" ]; then
+            sudo touch $LIBERO/sources/not_downloaded.txt
+            sudo chmod 777 $LIBERO/sources/not_downloaded.txt
+        fi
+
+        echo "ERROR: Could not Fetch Package"
+        # Save package not downloaded
+        echo "$url" >> $LIBERO/sources/not_downloaded.txt
+        echo ""
+    fi
+done
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+
+# Ask the user if they want to download the linux-firmware package
+echo "Do you want to download the linux-firmware package?"
+echo -n "(y/n): "
+read choice
+if [[ $choice == "y" || $choice == "Y" || $choice == "Yes" || $choice == "YES" ]]; then
+    echo ""
+    # Download the linux-firmware package
+    sudo git clone  https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git \
+        $LIBERO/sources/linux-firmware
+
+    total_packages=$((total_packages + 1))
+
+    echo ""
+    read -t 10 -p "Press Enter to continue..." || true
+else
+    echo ""
+    echo "Skipping the download of linux-firmware package."
+fi
+
+echo ""
+
+echo "Download PKGSRC Git Repository"
+
+git clone https://github.com/NetBSD/pkgsrc.git $LIBERO/sources/pkgsrc
+
+echo ""
+
+echo "Check md5sums"
+echo ""
+
+# Directory to check
+dir="$LIBERO/sources"
+
+# Save the current directory
+pushd . > /dev/null
+
+# Change directory to $dir
+cd $dir
+
+# Remove line with python-*-docs-html.tar.bz2 from md5sums
+sudo sed -i "/python-$python_version-docs-html.tar.bz2/d" md5sums
+
+# Remove line with systemd-man-pages-*.tar.xz from md5sums
+sudo sed -i "/systemd-man-pages-$systemd_version.tar.xz/d" md5sums
+
+# Remove line with tcl*-html.tar.gz from md5sums
+sudo sed -i "/tcl$tcl_version-html.tar.gz/d" md5sums
+
+echo "e170147da25e1d5f72721ffc46fe4e06  efibootmgr-$efibootmgr_version.tar.gz" | sudo tee -a md5sums >/dev/null
+echo "243fdbc48440212695cb9c6e6fd0f44f  efivar-$efivar_version.tar.bz2" | sudo tee -a md5sums >/dev/null
+echo "1f625f0a913c449551b1e3790a1817d7  freetype-$freetype_version.tar.xz" | sudo tee -a md5sums >/dev/null
+echo "6c7fe9dbb80c89c3579bedad9722e559  libpng-$libpng_version.tar.xz" | sudo tee -a md5sums >/dev/null
+echo "eaa2135fddb6eb03f2c87ee1823e5a78  popt-$popt_version.tar.gz" | sudo tee -a md5sums >/dev/null
+echo "097ff1a324ae02e0a3b0369f07a7544a  which-$which_version.tar.gz" | sudo tee -a md5sums >/dev/null
+
+# Sort md5sums file by the second column (case-insensitive)
+sudo sort -o md5sums -k 2,2 -f md5sums
+
+# Check md5sums
+md5sum -c md5sums
+
+# Return to the saved directory
+popd > /dev/null
+
+echo ""
+
+echo "Total Packages Downloaded= $total_packages \(89\)"
+echo "Total Patches Downloaded= $total_patches \(6\)"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+
+# Create Folders on $LIBERO
+echo "Create Folders on $LIBERO"
+if [ ! -d "$LIBERO/etc" ]; then
+    sudo mkdir -pv $LIBERO/etc
+fi
+
+if [ ! -d "$LIBERO/var" ]; then
+    sudo mkdir -pv $LIBERO/var
+fi
+
+if [ ! -d "$LIBERO/usr/bin" ]; then
+    sudo mkdir -pv $LIBERO/usr/bin
+fi
+
+if [ ! -d "$LIBERO/usr/lib" ]; then
+    sudo mkdir -pv $LIBERO/usr/lib
+fi
+
+# Add 32-bit Libraries Support
+case $(uname -m) in
+   x86_64) sudo mkdir -pv $LIBERO/usr/lib64 ;;
+esac
+
+if [ ! -d "$LIBERO/usr/sbin" ]; then
+    sudo mkdir -pv $LIBERO/usr/sbin
+fi
+
+echo "[Done]"
+
+echo ""
+
+# Create Symlinks from / to /usr
+echo "Create Symlinks from / to /usr"
+for i in bin sbin lib lib64; do
+    if [ ! -L "$LIBERO/$i" ]; then
+        sudo ln -sv usr/$i $LIBERO/$i
+    fi
+done
+
+echo "[Done]"
+
+echo ""
+
+# Add Group for Cross-Compiling
+echo "Add libero Group for Cross-Compiling"
+if ! getent group libero >/dev/null; then
+    sudo groupadd libero
+fi
+echo "[Done]"
+
+# Add User for Cross-Compiling
+echo "Add libero user for Cross-Compiling"
+if ! getent passwd libero >/dev/null; then
+    sudo useradd -s /bin/bash -g libero -m -k /dev/null libero
+fi
+echo "[Done]"
+
+# Define Password for "libero" User
+# Password for User "libero" is libero
+echo "Define Password for "libero" User"
+echo "libero:libero" | sudo chpasswd
+echo "[Done]"
+
+echo ""
+
+# Change Owner to User "libero"
+echo "Change Directories Owner to User libero"
+sudo chown -v libero $LIBERO/{usr{,/*},lib,var,etc,bin,sbin,sources,tools}
+
+# Change Owner to User "libero" for Directory Lib64
+case $(uname -m) in
+   x86_64) sudo chown -v libero $LIBERO/usr/lib64 ;;
+esac
+echo "[Done]"
+
+echo ""
+
+# This command creates a new file named .bash_profile
+# in the home directory of the user "libero" and writes the following lines to it
+echo "Create .bash_profile at /home/libero for User libero"
+sudo chown $USER /home/libero
+cat > /home/libero/.bash_profile << "EOF"
+exec env -i HOME=$HOME TERM=$TERM PS1='\u:\w\$ ' /bin/bash
+EOF
+echo "[Done]"
+
+# This code creates a new .bashrc file
+# in the home directory of the user 'libero' and sets some useful
+# environment variables for Cross-Compiling
+echo "Create .bashrc at /home/libero for User libero"
+cat > /home/libero/.bashrc << "EOF"
+set +h
+umask 022
+LIBERO=/mnt/libero
+LC_ALL=POSIX
+LIBERO_TGT=$(uname -m)-libero-linux-gnu
+PATH=/usr/bin
+if [ ! -L /bin ]; then PATH=/bin:$PATH; fi
+PATH=$LIBERO/tools/bin:$PATH
+CONFIG_SITE=$LIBERO/usr/share/config.site
+export LFS LC_ALL LFS_TGT PATH CONFIG_SITE
+EOF
+
+# Copy Scripts to the desired locations
+cp -R 03CrossCompiler /home/libero/
+cp -R 04CrossCompilingTools /home/libero/
+cp -R 05PrepChrootEnv /home/libero/
+sudo cp -R 06ChrootEnv $LIBERO/sources/
+sudo cp -R 07AdditionalCrossCompilingTools $LIBERO/sources/
+sudo cp -R 08BasicSystemSoftware $LIBERO/sources/
+sudo cp -R 09SystemConfiguration $LIBERO/sources/
+sudo cp -R 10MakingLiberoBootable $LIBERO/sources/
+sudo cp -R config $LIBERO/sources/
+
+sudo chown libero /home/libero
+echo "[Done]"
+
+echo ""
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
+
+echo ""
+
+# Start New Shell Running As User libero to Cross-Compile Libero GNU/Linux
+# Password == libero"
+# Now run on terminal after script ends:
+# su - libero

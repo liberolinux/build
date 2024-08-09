@@ -1,0 +1,238 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+bison_version="3.8.2"
+gettext_version="0.22.4"
+perl_version="5.38.2"
+python_version="3.11.9"
+texinfo_version="7.1"
+util_linux_version="2.39.3"
+
+# Set the environment variables
+export LC_ALL=POSIX
+export LIBERO_TGT=$(uname -m)-libero-linux-gnu
+
+# Set the cross-compile flags
+# export CFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export CXXFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export LDFLAGS="-Wl,-O1,--sort-common,--as-needed,-z,now"
+
+
+# If 07AdditionalCrossCompilingTools.log does not exists then create it
+if [ ! -f "/sources/07AdditionalCrossCompilingTools.log" ]; then
+    touch /sources/07AdditionalCrossCompilingTools.log
+fi
+
+# If error occurs, write error to a file
+exec 2> /sources/07AdditionalCrossCompilingTools.log
+
+echo ""
+echo "We are still in Chapter 7 of Linux From Scratch"
+echo "Some Additional Cross-Compiling Tools need to be Done"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Gettext Package
+echo ""
+echo "Installation of Gettext"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/gettext-$gettext_version.tar.xz
+cd /sources/gettext-$gettext_version
+./configure --disable-shared
+            
+make -j$(nproc)
+
+cp -v gettext-tools/src/{msgfmt,msgmerge,xgettext} /usr/bin
+
+rm -rf /sources/gettext-$gettext_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Bison Package
+echo ""
+echo "Installation of Bison"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/bison-$bison_version.tar.xz
+cd /sources/bison-$bison_version
+./configure --prefix=/usr \
+            --docdir=/usr/share/doc/bison
+            
+make -j$(nproc)
+make install
+
+rm -rf /sources/bison-$bison_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Perl Package
+echo ""
+echo "Installation of Perl"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/perl-$perl_version.tar.xz
+cd /sources/perl-$perl_version
+sh Configure -des                                   \
+             -Dprefix=/usr                          \
+             -Dvendorprefix=/usr                    \
+             -Duseshrplib                           \
+             -Dprivlib=/usr/lib/perl5/core_perl     \
+             -Darchlib=/usr/lib/perl5/core_perl     \
+             -Dsitelib=/usr/lib/perl5/site_perl     \
+             -Dsitearch=/usr/lib/perl5/site_perl    \
+             -Dvendorlib=/usr/lib/perl5/vendor_perl \
+             -Dvendorarch=/usr/lib/perl5/vendor_perl
+            
+make -j$(nproc)
+make install
+
+rm -rf /sources/perl-$perl_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Python Package
+echo ""
+echo "Installation of Python"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/Python-$python_version.tar.xz
+cd /sources/Python-$python_version
+./configure --prefix=/usr   \
+            --enable-shared \
+            --without-ensurepip
+            
+make -j$(nproc)
+# Some Python 3 modules can't be built now because the
+# dependencies are not installed yet.
+make install
+
+
+rm -rf /sources/Python-$python_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Texinfo Package
+echo ""
+echo "Installation of Texinfo"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/texinfo-$texinfo_version.tar.xz
+cd /sources/texinfo-$texinfo_version
+./configure --prefix=/usr
+            
+make -j$(nproc)
+make install
+
+rm -rf /sources/texinfo-$texinfo_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Util-linux Package
+echo ""
+echo "Installation of Util-linux"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/util-linux-$util_linux_version.tar.xz
+cd /sources/util-linux-$util_linux_version
+
+# The FHS recommends using the /var/lib/hwclock directory
+# instead of the usual /etc directory as the location for the adjtime file
+mkdir -pv /var/lib/hwclock
+
+./configure ADJTIME_PATH=/var/lib/hwclock/adjtime   \
+            --libdir=/usr/lib                       \
+            --runstatedir=/run                      \
+            --docdir=/usr/share/doc/util-linux      \
+            --disable-chfn-chsh                     \
+            --disable-login                         \
+            --disable-nologin                       \
+            --disable-su                            \
+            --disable-setpriv                       \
+            --disable-runuser                       \
+            --disable-pylibmount                    \
+            --disable-static                        \
+            --without-python
+            
+make -j$(nproc)
+make install
+
+rm -rf /sources/util-linux-$util_linux_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Remove the currently installed documentation files
+# to prevent them from ending up in the final system, and to save about 35 MB
+rm -rf /usr/share/{info,man,doc}/*
+
+# On a modern Linux system, the libtool .la files are only useful for libltdl.
+# No libraries in Linux From Scratch are loaded by libltdl, and
+# it's known that some .la files can cause BLFS package failures.
+# Remove those files now
+find /usr/{lib,libexec} -name \*.la -delete
+
+# The current system size is now about 3 GB,
+# however the /tools directory is no longer needed.
+# It uses about 1 GB of disk space
+rm -rf /tools
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"

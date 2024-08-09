@@ -1,0 +1,642 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+bash_version="5.2.21"
+binutils_version="2.42"
+coreutils_version="9.4"
+diffutils_version="3.10"
+file_version="5.45"
+findutils_version="4.9.0"
+gawk_version="5.3.0"
+gcc_version="13.2.0"
+gmp_version="6.3.0"
+grep_version="3.11"
+gzip_version="1.13"
+m4_version="1.4.19"
+mpc_version="1.3.1"
+mpfr_version="4.2.1"
+make_version="4.4.1"
+ncurses_version="6.4"
+patch_version="2.7.6"
+sed_version="4.9"
+tar_version="1.35"
+xz_version="5.4.6"
+
+# Set up environment variables
+export LIBERO=/mnt/libero
+export LC_ALL=POSIX
+
+# Set the target architecture
+export LIBERO_TGT=$(uname -m)-libero-linux-gnu
+
+# Set the cross-compile flags
+# export CFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export CXXFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export LDFLAGS="-Wl,-O1,--sort-common,--as-needed,-z,now"
+
+# If 04CrossCompilingTools.log does not exists then create it
+if [ ! -f "$LIBERO/sources/04CrossCompilingTools.log" ]; then
+    sudo touch $LIBERO/sources/04CrossCompilingTools.log
+fi
+
+# If error occurs, write error to a file
+exec 2> $LIBERO/04CrossCompilingTools.log
+
+# Build and Install Packages from Chapter 6
+echo "" 
+echo "Build and Install Packages from Chapter 6"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of M4 Package
+echo ""
+echo "Installation of M4"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/m4-$m4_version.tar.xz
+cd $LIBERO/sources/m4-$m4_version
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/m4-$m4_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Ncurses Package
+echo ""
+echo "Installation of Ncurses"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xzf $LIBERO/sources/ncurses-$ncurses_version.tar.gz
+cd $LIBERO/sources/ncurses-$ncurses_version
+
+# Ensure that gawk is found first during configuration
+sed -i s/mawk// configure
+
+# Run the following commands to build the “tic” program on the build host
+mkdir build
+pushd build
+  ../configure
+  make -C include
+  make -C progs tic
+popd
+
+./configure --prefix=/usr                \
+            --host=$LIBERO_TGT           \
+            --build=$(./config.guess)    \
+            --mandir=/usr/share/man      \
+            --with-manpage-format=normal \
+            --with-shared                \
+            --without-normal             \
+            --with-cxx-shared            \
+            --without-debug              \
+            --without-ada                \
+            --disable-stripping          \
+            --enable-widec
+
+make -j$(nproc)
+make DESTDIR=$LIBERO TIC_PATH=$(pwd)/build/progs/tic install
+echo "INPUT(-lncursesw)" > $LIBERO/usr/lib/libncurses.so
+
+rm -rf $LIBERO/sources/ncurses-$ncurses_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Bash Package
+echo ""
+echo "Installation of Bash"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xzf $LIBERO/sources/bash-$bash_version.tar.gz
+cd $LIBERO/sources/bash-$bash_version
+./configure --prefix=/usr                      \
+            --build=$(sh support/config.guess) \
+            --host=$LIBERO_TGT                 \
+            --without-bash-malloc
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# Make a link for the programs that use sh for a shell
+ln -sv bash $LIBERO/bin/sh
+
+rm -rf $LIBERO/sources/bash-$bash_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Coreutils Package
+echo ""
+echo "Installation of Coreutils"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/coreutils-$coreutils_version.tar.xz
+cd $LIBERO/sources/coreutils-$coreutils_version
+./configure --prefix=/usr                     \
+            --host=$LIBERO_TGT                \
+            --build=$(build-aux/config.guess) \
+            --enable-install-program=hostname \
+            --enable-no-install-program=kill,uptime
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# Move programs to their final expected locations
+mv -v $LIBERO/usr/bin/chroot              $LIBERO/usr/sbin
+mkdir -pv $LIBERO/usr/share/man/man8
+mv -v $LIBERO/usr/share/man/man1/chroot.1 $LIBERO/usr/share/man/man8/chroot.8
+sed -i 's/"1"/"8"/'                    $LIBERO/usr/share/man/man8/chroot.8
+
+rm -rf $LIBERO/sources/coreutils-$coreutils_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Diffutils Package
+echo ""
+echo "Installation of Diffutils"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/diffutils-$diffutils_version.tar.xz
+cd $LIBERO/sources/diffutils-$diffutils_version
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(./build-aux/config.guess)
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/diffutils-$diffutils_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of File Package
+echo ""
+echo "Installation of File"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xzf $LIBERO/sources/file-$file_version.tar.gz
+cd $LIBERO/sources/file-$file_version
+
+#The file command on the build host needs to be the same 
+# version as the one we are building in order to create the signature file.
+# Run the following commands to make a temporary copy of the file command
+mkdir build
+pushd build
+    ../configure --disable-bzlib        \
+               --disable-libseccomp     \
+               --disable-xzlib          \
+               --disable-zlib
+  make
+popd
+
+./configure --prefix=/usr --host=$LIBERO_TGT --build=$(./config.guess)
+            
+make -j$(nproc) FILE_COMPILE=$(pwd)/build/src/file
+make DESTDIR=$LIBERO install
+
+# Remove the libtool archive file because it is harmful for cross compilation
+rm -v $LIBERO/usr/lib/libmagic.la
+
+rm -rf $LIBERO/sources/file-$file_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Findutils Package
+echo ""
+echo "Installation of Findutils"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/findutils-$findutils_version.tar.xz
+cd $LIBERO/sources/findutils-$findutils_version
+./configure --prefix=/usr                   \
+            --localstatedir=/var/lib/locate \
+            --host=$LIBERO_TGT              \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/findutils-$findutils_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Gawk Package
+echo ""
+echo "Installation of Gawk"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/gawk-$gawk_version.tar.xz
+cd $LIBERO/sources/gawk-$gawk_version
+
+# Ensure some unneeded files are not installed
+sed -i 's/extras//' Makefile.in
+
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/gawk-$gawk_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Grep Package
+echo ""
+echo "Installation of Grep"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/grep-$grep_version.tar.xz
+cd $LIBERO/sources/grep-$grep_version
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(./build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/grep-$grep_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Gzip Package
+echo ""
+echo "Installation of Gzip"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/gzip-$gzip_version.tar.xz
+cd $LIBERO/sources/gzip-$gzip_version
+./configure --prefix=/usr --host=$LIBERO_TGT
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/gzip-$gzip_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Make Package
+echo ""
+echo "Installation of Make"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xzf $LIBERO/sources/make-$make_version.tar.gz
+cd $LIBERO/sources/make-$make_version
+./configure --prefix=/usr       \
+            --without-guile     \
+            --host=$LIBERO_TGT  \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/make-$make_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Patch Package
+echo ""
+echo "Installation of Patch"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/patch-$patch_version.tar.xz
+cd $LIBERO/sources/patch-$patch_version
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/patch-$patch_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Sed Package
+echo ""
+echo "Installation of Sed"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/sed-$sed_version.tar.xz
+cd $LIBERO/sources/sed-$sed_version
+./configure --prefix=/usr   \
+            --host=$LIBERO_TGT \
+            --build=$(./build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/sed-$sed_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Tar Package
+echo ""
+echo "Installation of Tar"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/tar-$tar_version.tar.xz
+cd $LIBERO/sources/tar-$tar_version
+./configure --prefix=/usr                     \
+            --host=$LIBERO_TGT                 \
+            --build=$(build-aux/config.guess)
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+rm -rf $LIBERO/sources/tar-$tar_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Xz Package
+echo ""
+echo "Installation of Xz"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/xz-$xz_version.tar.xz
+cd $LIBERO/sources/xz-$xz_version
+./configure --prefix=/usr                     \
+            --host=$LIBERO_TGT                \
+            --build=$(build-aux/config.guess) \
+            --disable-static
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# Remove the libtool archive file because it is harmful for cross compilation
+rm -v $LIBERO/usr/lib/liblzma.la
+
+rm -rf $LIBERO/sources/xz-$xz_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Binutils Package - Pass 2
+echo ""
+echo "Installation of Binutils - Pass 2"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/binutils-$binutils_version.tar.xz
+cd $LIBERO/sources/binutils-$binutils_version
+
+# Binutils building system relies on an shipped libtool copy to
+# link against internal static libraries, but the libiberty and zlib copies
+# shipped in the package do not use libtool. This inconsistency may cause
+# produced binaries mistakenly linked against libraries from the host distro
+sed '6009s/$add_dir//' -i ltmain.sh
+
+# Change Directory in order to build Binutils
+mkdir -v $LIBERO/sources/binutils-$binutils_version/build
+cd       $LIBERO/sources/binutils-$binutils_version/build
+
+../configure                   \
+    --prefix=/usr              \
+    --build=$(../config.guess) \
+    --host=$LIBERO_TGT         \
+    --disable-nls              \
+    --enable-shared            \
+    --enable-gprofng=no        \
+    --disable-werror           \
+    --enable-64-bit-bfd
+            
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# Remove the libtool archive files because they are harmful
+# for cross compilation, and remove unnecessary static libraries
+rm -v $LIBERO/usr/lib/lib{bfd,ctf,ctf-nobfd,opcodes,sframe}.{a,la}
+
+rm -rf $LIBERO/sources/binutils-$binutils_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of GCC Package - Pass 2
+echo ""
+echo "Installation of GCC - Pass 2"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/gcc-$gcc_version.tar.xz
+cd $LIBERO/sources/gcc-$gcc_version
+tar -xf ../mpfr-$mpfr_version.tar.xz
+mv -v mpfr-$mpfr_version mpfr
+tar -xf ../gmp-$gmp_version.tar.xz
+mv -v gmp-$gmp_version gmp
+tar -xf ../mpc-$mpc_version.tar.gz
+mv -v mpc-$mpc_version mpc
+
+# If building on x86_64, change the default directory
+# name for 64-bit libraries to “lib”
+case $(uname -m) in
+  x86_64)
+    sed -e '/m64=/s/lib64/lib/' -i.orig gcc/config/i386/t-linux64
+  ;;
+esac
+
+# Override the building rule of libgcc and libstdc++ headers,
+# to allow building these libraries with POSIX threads support
+sed '/thread_header =/s/@.*@/gthr-posix.h/' \
+    -i libgcc/Makefile.in libstdc++-v3/include/Makefile.in
+
+mkdir -v $LIBERO/sources/gcc-$gcc_version/build && \
+    cd $LIBERO/sources/gcc-$gcc_version/build
+../configure                                        \
+    --build=$(../config.guess)                      \
+    --host=$LIBERO_TGT                              \
+    --target=$LIBERO_TGT                            \
+    LDFLAGS_FOR_TARGET=-L$PWD/$LIBERO_TGT/libgcc    \
+    --prefix=/usr                                   \
+    --with-build-sysroot=$LIBERO                    \
+    --enable-default-pie                            \
+    --enable-default-ssp                            \
+    --disable-nls                                   \
+    --disable-multilib                              \
+    --disable-libatomic                             \
+    --disable-libgomp                               \
+    --disable-libquadmath                           \
+    --disable-libsanitizer                          \
+    --disable-libssp                                \
+    --disable-libvtv                                \
+    --enable-languages=c,c++
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# As a finishing touch, create a utility symlink.
+# Many programs and scripts run cc instead of gcc
+ln -sv gcc $LIBERO/usr/bin/cc
+
+rm -rf $LIBERO/sources/gcc-$gcc_version
+rm -rf $LIBERO/sources/mpfr
+rm -rf $LIBERO/sources/mpc
+rm -rf $LIBERO/sources/gmp
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
+
+echo ""
+
+while true; do
+    echo ""
+    echo "Do you want to compress the whole $LIBERO directory and save it as a backup?"
+    echo -n "(Yes/No) "
+    read answer
+
+    if [ "$answer" = "yes" ] || [ "$answer" = "Yes" ] || [ "$answer" = "YES" ] || \
+            [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+        # Continue with the script
+        break
+    elif [ "$answer" = "no" ] || [ "$answer" = "No" ] || [ "$answer" = "NO" ] || \
+            [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+        echo ""
+        echo "Exiting the script as per user request."
+        echo "[Done]"
+        exit
+    else
+        echo ""
+        echo "Invalid option. Please enter Yes or No."
+    fi
+done
+
+while true; do
+    echo ""
+    echo "Enter the username you want to switch to:"
+    read username
+
+    if [ "$username" = "root" ]; then
+        echo ""
+        echo "User root is not allowed."
+    elif id "$username" &>/dev/null; then
+        if groups $username | grep &>/dev/null '\bwheel\b'; then
+            cd $LIBERO
+            su $username -c "sudo tar -cJvf /home/$username/04CrossCompilingTools.tar.xz *"
+            echo "[Done]"
+            break
+        else
+            echo ""
+            echo "User $username is not in the wheel group."
+        fi
+    else
+        echo ""
+        echo "User $username does not exist."
+    fi
+done

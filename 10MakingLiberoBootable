@@ -1,0 +1,389 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+DEVICE=/dev/sdc
+
+efibootmgr_version="18"
+efivar_version="38"
+freetype_version="2.13.2"
+grub_version="2.06"
+libpng_version="1.6.43"
+linux_version="6.9.10"
+popt_version="1.19"
+which_version="2.21"
+
+# Set the environment variables
+export LC_ALL=POSIX
+
+# Set the cross-compile flags
+# export CFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export CXXFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export LDFLAGS="-Wl,-O1,--sort-common,--as-needed,-z,now"
+
+# Final Chapter - Making Libero Bootable
+echo "" 
+echo "Final Chapter - Making Libero Bootable"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Creating the /etc/fstab File
+# You can modify this for your needs
+echo "Creating the /etc/fstab File"
+
+BOOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}1)
+ROOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}2)
+
+cat > /etc/fstab << "EOF"
+# Begin /etc/fstab
+
+# file system  mount-point  type     options             dump  fsck
+#                                                              order
+
+UUID=<boot>     /boot        vfat    rw,relatime          0      2
+UUID=<root>     /            ext4    rw,noatime,discard            0       1
+
+# End /etc/fstab
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Write the Value of UUID Partitions Using 'sed' command"
+
+sed -i "s/<boot>/${BOOT_PARTITION}/g" /etc/fstab
+sed -i "s/<root>/${ROOT_PARTITION}/g" /etc/fstab
+
+echo ""
+echo "[Done]"
+
+# Installation of the Linux Kernel Package
+echo ""
+echo "Installation of the Linux Kernel"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xvf /sources/linux-$linux_version.tar.xz
+tar -xvf /sources/linux-$linux_version.tar.xz -C /usr/src
+cd /sources/linux-$linux_version
+
+# Copy current directory of Linux Kernel Firmware to the desired Directory
+cp -Rv ../linux-firmware/* /lib/firmware/
+
+make mrproper
+
+cp -Rv ../config .config
+
+make
+
+make modules_install
+
+# The path to the kernel image may vary depending on the platform being used.
+# The filename below can be changed to suit your taste, but the stem of the filename
+# should be vmlinuz to be compatible with the automatic setup of the boot process
+# described in the next section. The following command assumes an x86 architecture
+cp -iv arch/x86/boot/bzImage /boot/vmlinuz
+
+# System.map is a symbol file for the kernel.
+# It maps the function entry points of every function in the kernel API,
+# as well as the addresses of the kernel data structures for the running kernel.
+# It is used as a resource when investigating kernel problems.
+# Issue the following command to install the map file
+cp -iv System.map /boot/System.map
+
+# The kernel configuration file .config contains all the configuration selections for
+# the kernel that was just compiled. It is a good idea to keep this file for future reference
+cp -iv .config /boot/config
+
+# Install the documentation for the Linux kernel
+cp -r Documentation -T /usr/share/doc/linux
+
+rm -rf /sources/linux-$linux_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Freetype Package
+echo ""
+echo "Installation of Freetype"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/freetype-$freetype_version.tar.xz
+cd /sources/freetype-$freetype_version
+
+sed -ri "s:.*(AUX_MODULES.*valid):\1:" modules.cfg &&
+
+sed -r "s:.*(#.*SUBPIXEL_RENDERING) .*:\1:" \
+    -i include/freetype/config/ftoption.h  &&
+
+./configure --prefix=/usr --enable-freetype-config --disable-static &&
+make -j$(nproc)
+
+make install
+
+rm -rf /sources/freetype-$freetype_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Libpng Package
+echo ""
+echo "Installation of Libpng"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/libpng-$libpng_version.tar.xz
+cd /sources/libpng-$libpng_version
+./configure --prefix=/usr --disable-static &&
+make -j$(nproc)
+
+make install
+
+mkdir -v /usr/share/doc/libpng &&
+cp -v README libpng-manual.txt /usr/share/doc/libpng
+
+rm -rf /sources/libpng-$libpng_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Which Package
+echo ""
+echo "Installation of Which"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xzf /sources/which-$which_version.tar.gz
+cd /sources/which-$which_version
+./configure --prefix=/usr &&
+make -j$(nproc)
+
+make install
+
+rm -rf /sources/which-$which_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Popt Package
+echo ""
+echo "Installation of Popt"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xzf /sources/popt-$popt_version.tar.gz
+cd /sources/popt-$popt_version
+./configure --prefix=/usr --disable-static &&
+make -j$(nproc)
+
+make install
+
+rm -rf /sources/popt-$popt_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of efivar Package
+echo ""
+echo "Installation of efivar"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xjf /sources/efivar-$efivar_version.tar.bz2
+cd /sources/efivar-$efivar_version
+
+# Fix an issue in Makefile causing the package to be rebuilt during installation
+sed '/prep :/a\\ttouch prep' -i src/Makefile
+
+make ERRORS=
+
+make install LIBDIR=/usr/lib
+
+rm -rf /sources/efivar-$efivar_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of efibootmgr Package
+echo ""
+echo "Installation of efibootmgr"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xzf /sources/efibootmgr-$efibootmgr_version.tar.gz
+cd /sources/efibootmgr-$efibootmgr_version
+
+make EFIDIR=/boot/EFI EFI_LOADER=grubx64.efi
+
+make install EFIDIR=/boot/EFI
+
+rm -rf /sources/efibootmgr-$efibootmgr_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of GRUB Package
+echo ""
+echo "Installation of GRUB"
+
+# Pause for 5 seconds
+sleep 5
+
+cd /sources
+tar -xf /sources/grub-$grub_version.tar.xz
+cd /sources/grub-$grub_version
+
+# Unset any environment variables which may affect the build
+unset {C,CPP,CXX,LD}FLAGS
+
+./configure --prefix=/usr        \
+            --sysconfdir=/etc    \
+            --disable-efiemu     \
+            --enable-grub-mkfont \
+            --with-platform=efi  \
+            --target=x86_64      \
+            --disable-werror     &&
+unset TARGET_CC &&
+
+make
+
+make install &&
+mv -v /etc/bash_completion.d/grub /usr/share/bash-completion/completions
+
+rm -rf /sources/grub-$grub_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# GRUB Configuration File
+
+mkdir /boot/grub
+
+echo "GRUB Configuration File"
+cat > /boot/grub/grub.cfg << EOF
+# Begin /boot/grub/grub.cfg
+set default=0
+set timeout=30
+
+function load_video {
+    if [ x$feature_all_video_module = xy ]; then
+        insmod all_video
+    else
+        insmod efi_gop
+        insmod efi_uga
+        insmod ieee1275_fb
+        insmod vbe
+        insmod vga
+        insmod video_bochs
+        insmod video_cirrus
+    fi
+}
+
+
+set gfxmode=auto
+load_video
+insmod gfxterm
+insmod part_gpt
+insmod part_msdos
+insmod ext2
+search --no-floppy --fs-uuid --set=root <boot>
+
+menuentry "Libero GNU/Linux"  {
+  echo    'Loading Libero GNU/Linux ...'
+  linux   /vmlinuz root=UUID="<root>" quiet loglevel=0 udev.log-priority=3 ro
+}
+EOF
+echo "[Done]"
+
+echo ""
+echo "Change Values from Grub Configuration using 'sed'"
+
+sed -i "s/<boot>/${BOOT_PARTITION}/g" /boot/grub/grub.cfg
+sed -i "s/<root>/${ROOT_PARTITION}/g" /boot/grub/grub.cfg
+
+echo ""
+echo "[Done]"
+
+# Minimal Boot Configuration with GRUB and EFI
+echo ""
+echo "Minimal Boot Configuration with GRUB and EFI"
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id="Libero GNU/Linux" --removable
+echo "[Done]"
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+echo "Status of the system with respect to the Linux Standards Base (LSB)"
+
+cat > /etc/lsb-release << "EOF"
+DISTRIB_ID="Libero GNU/Linux"
+DISTRIB_RELEASE="1.0"
+DISTRIB_DESCRIPTION="Libero GNU/Linux"
+EOF
+
+cat > /etc/os-release << "EOF"
+NAME="Libero GNU/Linux"
+VERSION="1.0"
+ID=libero
+PRETTY_NAME="Libero GNU/Linux"
+HOME_URL="https://libero.eu.org"
+EOF
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"

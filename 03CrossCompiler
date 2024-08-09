@@ -1,0 +1,319 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+binutils_version="2.42"
+gcc_version="13.2.0"
+glibc_version="2.39"
+gmp_version="6.3.0"
+linux_version="6.9.10"
+mpc_version="1.3.1"
+mpfr_version="4.2.1"
+
+# Force the bash shell to read the new user profile
+# source ~/.bash_profile
+
+# Set up environment variables for the build process
+export LIBERO=/mnt/libero
+export LC_ALL=POSIX
+
+# Set the target architecture
+export LIBERO_TGT=$(uname -m)-libero-linux-gnu
+
+# Set the cross-compile flags
+# export CFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export CXXFLAGS="-Oz -pipe -march=x86-64 -fomit-frame-pointer -fstack-clash-protection \
+        #-fno-plt -fexceptions -fasynchronous-unwind-tables -Wp,-D_FORTIFY_SOURCE=2"
+# export LDFLAGS="-Wl,-O1,--sort-common,--as-needed,-z,now"
+
+# If 03CrossCompiler.log does not exists then create it
+if [ ! -f "$LIBERO/sources/03CrossCompiler.log" ]; then
+    sudo touch $LIBERO/sources/03CrossCompiler.log
+    sudo chmod 777 $LIBERO/sources/03CrossCompiler.log
+fi
+
+# If error occurs, write error to a file
+exec 2> $LIBERO/03CrossCompiler.log
+
+# Build and Install the Packages from Chapter 5
+echo ""
+echo "Build and Install the Packages from Chapter 5"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Cross Binutils
+echo ""
+echo "Installation of Cross Binutils"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/binutils-$binutils_version.tar.xz
+cd $LIBERO/sources/binutils-$binutils_version
+mkdir -v $LIBERO/sources/binutils-$binutils_version/build && \
+    cd $LIBERO/sources/binutils-$binutils_version/build
+../configure --prefix=$LIBERO/tools \
+             --with-sysroot=$LIBERO \
+             --target=$LIBERO_TGT   \
+             --disable-nls          \
+             --enable-gprofng=no    \
+             --disable-werror
+make -j$(nproc)
+make install
+
+rm -rf $LIBERO/sources/binutils-$binutils_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Cross GCC
+echo ""
+echo "Installation of Cross GCC"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/gcc-$gcc_version.tar.xz
+cd $LIBERO/sources/gcc-$gcc_version
+tar -xf ../mpfr-$mpfr_version.tar.xz
+mv -v mpfr-$mpfr_version mpfr
+tar -xf ../gmp-$gmp_version.tar.xz
+mv -v gmp-$gmp_version gmp
+tar -xf ../mpc-$mpc_version.tar.gz
+mv -v mpc-$mpc_version mpc
+
+# On x86_64 hosts, set the default directory name for 64-bit libraries to “lib”:
+case $(uname -m) in
+  x86_64)
+    sed -e '/m64=/s/lib64/lib/' \
+        -i.orig gcc/config/i386/t-linux64
+ ;;
+esac
+
+mkdir -v $LIBERO/sources/gcc-$gcc_version/build && \
+    cd $LIBERO/sources/gcc-$gcc_version/build
+../configure                  \
+    --target=$LIBERO_TGT      \
+    --prefix=$LIBERO/tools    \
+    --with-glibc-version=2.39 \
+    --with-sysroot=$LIBERO    \
+    --with-newlib             \
+    --without-headers         \
+    --enable-default-pie      \
+    --enable-default-ssp      \
+    --disable-nls             \
+    --disable-shared          \
+    --disable-multilib        \
+    --disable-threads         \
+    --disable-libatomic       \
+    --disable-libgomp         \
+    --disable-libquadmath     \
+    --disable-libssp          \
+    --disable-libvtv          \
+    --disable-libstdcxx       \
+    --enable-languages=c,c++
+
+make -j$(nproc)
+make install
+
+cd ..
+cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+  `dirname $($LIBERO_TGT-gcc -print-libgcc-file-name)`/include/limits.h
+
+rm -rf $LIBERO/sources/gcc-$gcc_version
+rm -rf $LIBERO/sources/mpfr
+rm -rf $LIBERO/sources/mpc
+rm -rf $LIBERO/sources/gmp
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Linux API Headers
+echo ""
+echo "Installation of Linux API Headers"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xvf $LIBERO/sources/linux-$linux_version.tar.xz
+cd $LIBERO/sources/linux-$linux_version
+make mrproper
+
+make headers
+find usr/include -type f ! -name '*.h' -delete
+cp -rv usr/include $LIBERO/usr
+
+rm -rf $LIBERO/sources/linux-$linux_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Glibc
+echo ""
+echo "Installation of Glibc"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/glibc-$glibc_version.tar.xz
+cd $LIBERO/sources/glibc-$glibc_version
+
+patch -Np1 -i ../glibc-2.38-fhs-1.patch
+
+mkdir -v $LIBERO/sources/glibc-$glibc_version/build && \
+    cd $LIBERO/sources/glibc-$glibc_version/build
+
+case $(uname -m) in
+    i?86)   ln -sfv ld-linux.so.2 $LIBERO/lib/ld-lsb.so.3
+    ;;
+    x86_64) ln -sfv ../lib/ld-linux-x86-64.so.2 $LIBERO/lib64
+            ln -sfv ../lib/ld-linux-x86-64.so.2 $LIBERO/lib64/ld-lsb-x86-64.so.3
+    ;;
+esac
+
+echo "rootsbindir=/usr/sbin" > configparms
+../configure                             \
+      --prefix=/usr                      \
+      --host=$LIBERO_TGT                 \
+      --build=$(../scripts/config.guess) \
+      --enable-kernel=4.14               \
+      --with-headers=$LIBERO/usr/include \
+      --disable-nscd                     \
+      libc_cv_slibdir=/usr/lib
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+#Fix a hard coded path to the executable loader in the ldd script
+sed '/RTLDLIST=/s@/usr@@g' -i $LIBERO/usr/bin/ldd
+
+echo 'int main(){}' | $LIBERO_TGT-gcc -xc -
+readelf -l a.out | grep ld-linux
+
+rm -v a.out
+
+rm -rf $LIBERO/sources/glibc-$glibc_version
+
+echo ""
+echo "[Done]"
+echo "[Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]?"
+read -t 10 -p "Press Enter to continue..." || true
+
+# Installation of Target Libstdc++
+echo ""
+echo "Installation of Target Libstdc++"
+
+# Pause for 5 seconds
+sleep 5
+
+cd $LIBERO/sources
+tar -xf $LIBERO/sources/gcc-$gcc_version.tar.xz
+cd $LIBERO/sources/gcc-$gcc-version
+mkdir -v $LIBERO/sources/gcc-$gcc_version/build && \
+    cd $LIBERO/sources/gcc-$gcc_version/build
+../libstdc++-v3/configure           \
+    --host=$LIBERO_TGT              \
+    --build=$(../config.guess)      \
+    --prefix=/usr                   \
+    --disable-multilib              \
+    --disable-nls                   \
+    --disable-libstdcxx-pch         \
+    --with-gxx-include-dir=/tools/$LIBERO_TGT/include/c++/13.2.0
+
+make -j$(nproc)
+make DESTDIR=$LIBERO install
+
+# Remove the libtool archive files because they are harmful for cross-compilation
+rm -v $LIBERO/usr/lib/lib{stdc++{,exp,fs},supc++}.la
+
+rm -rf $LIBERO/sources/gcc-$gcc_version
+
+echo ""
+echo "[Done]"
+read -t 10 -p "Press Enter to continue..." || true
+
+echo ""
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
+
+echo ""
+
+while true; do
+    echo ""
+    echo "Do you want to compress the whole $LIBERO directory and save it as a backup?"
+    echo -n "(Yes/No) "
+    read answer
+
+    if [ "$answer" = "yes" ] || [ "$answer" = "Yes" ] || [ "$answer" = "YES" ] || \
+            [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+        # Continue with the script
+        break
+    elif [ "$answer" = "no" ] || [ "$answer" = "No" ] || [ "$answer" = "NO" ] || \
+            [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+        echo ""
+        echo "Exiting the script as per user request."
+        echo "[Done]"
+        exit
+    else
+        echo ""
+        echo "Invalid option. Please enter Yes or No."
+    fi
+done
+
+while true; do
+    echo ""
+    echo "Enter the username you want to switch to:"
+    read username
+
+    if [ "$username" = "root" ]; then
+        echo ""
+        echo "User root is not allowed."
+    elif id "$username" &>/dev/null; then
+        if groups $username | grep &>/dev/null '\bwheel\b'; then
+            cd $LIBERO
+            su $username -c "sudo tar -cJvf /home/$username/03CrossCompiler.tar.xz *"
+            echo "[Done]"
+            break
+        else
+            echo ""
+            echo "User $username is not in the wheel group."
+        fi
+    else
+        echo ""
+        echo "User $username does not exist."
+    fi
+done

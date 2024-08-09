@@ -1,0 +1,198 @@
+#!/bin/bash
+
+# Copyright © 1999-2024 Gerard Beekmans
+# Linux® is a registered trademark of Linus Torvalds.
+#
+# This file contains the MIT License for the software developed by Gerard Beekmans.
+# The MIT License grants permission to any person obtaining a copy of this software
+# and associated documentation files to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+# FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+# Start Counting Time of Script
+start_time=$(date +%s)
+
+# Chapter 9 - System Configuration
+echo "" 
+echo "Welcome to Chapter 9 - System Configuration"
+
+echo ""
+read -t 10 -p "Press Enter to continue..." || true
+
+# Configuring the system hostname
+echo "Configuring the system hostname"
+echo "libero" > /etc/hostname
+echo ""
+echo "[Done]"
+
+# Configuring the Linux Console
+echo "Configuring the Linux Console"
+cat > /etc/vconsole.conf << "EOF"
+KEYMAP=us
+# FONT=
+EOF
+echo ""
+echo "[Done]"
+
+# Configuring the System Locale
+echo "Configuring the System Locale"
+cat > /etc/locale.conf << "EOF"
+LANG=en_US.UTF-8
+EOF
+echo ""
+echo "[Done]"
+
+# Creating the /etc/shells File
+echo "Creating the /etc/shells File"
+cat > /etc/shells << "EOF"
+# Begin /etc/shells
+
+/bin/sh
+/bin/bash
+
+# End /etc/shells
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Create a Global bashrc Configuration"
+cat > /etc/bashrc << "EOF"
+#
+# /etc/bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+# Shell Options
+if [[ -z "$TMUX" ]]; then
+	/opt/bin/tmux
+fi
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+PS1='[\u@\h \W]\$ '
+
+# End /etc/bashrc
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Create a Global Bash Profile Configuration"
+cat > /etc/profile << "EOF"
+#
+# /etc/profile
+#
+
+# Get the aliases and functions
+if [ -f /etc/bashrc ]; then
+	source /etc/bashrc
+fi
+
+# User specific environment and startup programs
+PATH=/opt/bin:/opt/sbin:/usr/bin:/usr/sbin
+
+export PATH
+
+# End /etc/profile
+EOF
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Install pkgsrc"
+
+mkdir /usr/ports
+mv /sources/pkgsrc /usr/ports
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Bootstrap pkgsrc"
+
+cd /usr/ports/bootstrap
+./bootstrap --prefix /opt --prefer-pkgsrc yes --make-jobs $(nproc)
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Installing PKGIN Package Manager from Pkgsrc"
+
+cd /usr/ports/pkgtools/pkgin/
+bmake install clean
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Apped FETCH_USING=curl to mk.conf Configuration File"
+
+echo "FETCH_USING=curl" >> /opt/etc/mk.conf
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Install repository configuration for PKGIN Package Manager"
+echo "http://libero.eu.org/packages/" > /opt/etc/pkgin/repositories.conf 
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Install some Packages using PKGIN Package Manager"
+
+pkgin update
+pkgin -y install curl git tmux mozilla-rootcerts
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "Install the ca-certificates package"
+
+mozilla-rootcerts install
+
+echo ""
+echo "[Done]"
+
+echo ""
+echo "TODO: Edit tmux.conf Configuration File"
+
+cat > /opt/etc/tmux.conf << "EOF"
+set -g status-right-length 100
+set -g status-interval 1
+
+set -g status-right "#(awk '{printf \"Net: U: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/tx_bytes) \
+| #(awk '{printf \"D: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/rx_bytes) \
+| #(df -h / | awk 'NR==2 {print $3\"/\"$2}') \
+| #(awk '/^MemTotal:/ {total=$2} /^MemAvailable:/ {available=$2} END {printf "%.0fMB/%.0fMB", (total - available) / 1024, total / 1024}' /proc/meminfo) \
+| #(awk -v s=$(awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8}' /proc/stat) -v i=$(awk '/^cpu / {print $5}' /proc/stat) 'BEGIN {printf \"CPU: %.1f%%\", 100 * (s - i) / s}') \
+| Libero GNU/Linux | %d/%m/%Y %R |"
+EOF
+
+echo ""
+echo "[Done]"
+
+read -t 10 -p "Press Enter to continue..." || true
+
+# End Counnting Time of Script
+end_time=$(date +%s)
+time_elapsed=$((end_time - start_time))
+hours=$((time_elapsed / 3600))
+minutes=$((time_elapsed % 3600 / 60))
+seconds=$((time_elapsed % 60))
+echo "Time: $hours hour(s), $minutes minute(s), and $seconds second(s)"
