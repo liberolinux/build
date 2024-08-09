@@ -112,7 +112,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Support
 
-If you encounter any issues or have questions, feel free to open an issue in the repository or contact us through the [LiberoLinux community forums](https://liberolinux.org/community).
+If you encounter any issues or have questions, feel free to open an issue in the repository or contact us through the [LiberoLinux community forums](https://libero.eu.org/community).
 
 ---
 
