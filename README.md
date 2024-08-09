@@ -15,7 +15,7 @@ Welcome to the **Libero GNU/Linux Build** repository! This project provides the 
 
 ## Introduction
 
-LiberoLinux is designed to give users the freedom to create a tailored Linux distribution. Whether you want to build a minimal system, a desktop environment, or a server, LiberoLinux provides the tools to do so with ease.
+Libero GNU/Linux is designed to give users the freedom to create a tailored Linux distribution. Whether you want to build a minimal system, a desktop environment, or a server, Libero GNU/Linux provides the tools to do so with ease.
 
 ## Features
 
@@ -31,6 +31,8 @@ Before you begin, ensure you have the following:
 - A Linux-based operating system (Debian/Ubuntu, Arch, Fedora, etc.)
 - Basic knowledge of shell scripting and Linux system administration
 - Required packages: `bash`, `coreutils`, `gcc`, `make`, `wget`, `curl`, `git`
+
+Run the following script "01Requirements" to know if your host system have all the packages required to build Libero GNU/Linux.
 
 ## Getting Started
 
@@ -58,13 +60,14 @@ To get started with building LiberoLinux, follow these steps:
 
 4. **Start the build process:**
 
-   Run the build script to start building LiberoLinux:
+   Run the build script to start building Libero GNU/Linux:
 
    ```bash
-   ./build.sh
+   ./02Preparation
    ```
 
    The script will download, compile, and install the selected components based on your configuration.
+   Then, after 02Preparation script, run the following scripts by numeric order, next one "03CrossCompiler" and so on.
 
 ## Usage
 
