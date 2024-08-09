@@ -1,6 +1,6 @@
 # LiberoLinux Build
 
-Welcome to the **LiberoLinux Build** repository! This project provides the build scripts and instructions necessary to build LiberoLinux, a lightweight, customizable Linux distribution focused on simplicity, efficiency, and user control.
+Welcome to the **Libero GNU/Linux Build** repository! This project provides the build scripts and instructions necessary to build LiberoLinux, a lightweight, customizable Linux distribution focused on simplicity, efficiency, and user control.
 
 ## Table of Contents
 
