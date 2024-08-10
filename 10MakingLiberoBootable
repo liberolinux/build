@@ -21,7 +21,7 @@
 # Start Counting Time of Script
 start_time=$(date +%s)
 
-DEVICE=/dev/sdc
+DEVICE=/dev/sdX
 
 efibootmgr_version="18"
 efivar_version="38"
@@ -335,7 +335,7 @@ search --no-floppy --fs-uuid --set=root <boot>
 
 menuentry "Libero GNU/Linux"  {
   echo    'Loading Libero GNU/Linux ...'
-  linux   /vmlinuz root=UUID="<root>" quiet loglevel=0 udev.log-priority=3 ro
+  linux   /vmlinuz root="<root>" quiet loglevel=0 udev.log-priority=3 ro
 }
 EOF
 echo "[Done]"
@@ -343,8 +343,8 @@ echo "[Done]"
 echo ""
 echo "Change Values from Grub Configuration using 'sed'"
 
-sed -i "s/<boot>/${BOOT_PARTITION}/g" /boot/grub/grub.cfg
-sed -i "s/<root>/${ROOT_PARTITION}/g" /boot/grub/grub.cfg
+sed -i "s/<boot>/${DEVICE}1/g" /boot/grub/grub.cfg
+sed -i "s/<root>/${DEVICE}2/g" /boot/grub/grub.cfg
 
 echo ""
 echo "[Done]"
