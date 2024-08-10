@@ -59,7 +59,7 @@ To get started with building LiberoLinux, follow these steps:
    Edit the configuration files in this directory to set up your desired build environment.
    You can set CFLAGS and CXXFlags to your needs despite is not recommended because it can brake the system.
 
-   Edit "DEVICE" variable in order to install Libero GNU/Linux on the destination Hard-Drive on the following scripts:
+   Edit "DEVICE" variable before running scripts in order to install Libero GNU/Linux on the destination Hard-Drive on the following scripts:
 
    02Preparation and 10MakingLiberoBootable
 
@@ -102,7 +102,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Support
 
 If you encounter any issues or have questions, feel free to open an issue in the repository or contact us through the [Libero GNU/Linux Community Forums](https://libero.eu.org/community).
-
----
-
-Feel free to customize this template to better fit the specific details and needs of the LiberoLinux Build project.
