@@ -53,8 +53,8 @@ read -t 10 -p "Press Enter to continue..." || true
 # You can modify this for your needs
 echo "Creating the /etc/fstab File"
 
-BOOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}1)
-ROOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}2)
+# BOOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}1)
+# ROOT_PARTITION=$(blkid -s UUID -o value ${DEVICE}2)
 
 cat > /etc/fstab << "EOF"
 # Begin /etc/fstab
@@ -62,8 +62,8 @@ cat > /etc/fstab << "EOF"
 # file system  mount-point  type     options             dump  fsck
 #                                                              order
 
-UUID=<boot>     /boot        vfat    rw,relatime          0      2
-UUID=<root>     /            ext4    rw,noatime,discard            0       1
+<boot>     /boot        vfat    rw,relatime          0      2
+<root>     /            ext4    rw,noatime,discard            0       1
 
 # End /etc/fstab
 EOF
@@ -73,8 +73,8 @@ echo "[Done]"
 echo ""
 echo "Write the Value of UUID Partitions Using 'sed' command"
 
-sed -i "s/<boot>/${BOOT_PARTITION}/g" /etc/fstab
-sed -i "s/<root>/${ROOT_PARTITION}/g" /etc/fstab
+sed -i "s/<boot>/${DEVICE}1/g" /etc/fstab
+sed -i "s/<root>/${DEVICE}2/g" /etc/fstab
 
 echo ""
 echo "[Done]"
