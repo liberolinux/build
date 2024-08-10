@@ -56,9 +56,13 @@ To get started with building LiberoLinux, follow these steps:
 
 3. **Configure your build:**
 
-   Edit the configuration files in the `configs` directory to set up your desired build environment.
+   Edit the configuration files in this directory to set up your desired build environment.
+   You can set CFLAGS and CXXFlags to your needs despite is not recommended because it can brake the system.
 
-4. **Start the build process:**
+   Edit "DEVICE" variable in order to install Libero GNU/Linux on the destination Hard-Drive on the following scripts:
+   02Preparation and 10MakingLiberoBootable
+
+5. **Start the build process:**
 
    Run the build script to start building Libero GNU/Linux:
 
