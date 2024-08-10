@@ -60,6 +60,7 @@ To get started with building LiberoLinux, follow these steps:
    You can set CFLAGS and CXXFlags to your needs despite is not recommended because it can brake the system.
 
    Edit "DEVICE" variable in order to install Libero GNU/Linux on the destination Hard-Drive on the following scripts:
+
    02Preparation and 10MakingLiberoBootable
 
 5. **Start the build process:**
