@@ -25,7 +25,7 @@ start_time=$(date +%s)
 export LIBERO=/mnt/libero
 export LC_ALL=POSIX
 
-DEVICE=/dev/sdc
+DEVICE=/dev/sdX
 
 acl_version="2.3.2"
 attr_version="2.5.2"
