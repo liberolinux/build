@@ -74,6 +74,38 @@ To get started with building LiberoLinux, follow these steps:
    The script will download, compile, and install the selected components based on your configuration.
    Then, after 02Preparation script, run the following scripts by numeric order, next one "03CrossCompiler" and so on.
 
+## Network Configuration
+
+After Building and boot into Libero GNU/Linux and you need to configure Network, it is advisable to read Chapter 9.2 from Linux From Scratch.
+Here's a snippet:
+
+The command below creates a basic configuration file for an IPv4 DHCP setup:
+
+```bash
+cat > /etc/systemd/network/10-eth-dhcp.network << "EOF"
+[Match]
+Name=<network-device-name>
+[Network]
+DHCP=ipv4
+[DHCPv4]
+UseDomains=true
+EOF
+```
+
+For Static IP Address you can edit the following file:
+
+```bash
+cat > /etc/systemd/network/10-eth-static.network << "EOF"
+[Match]
+Name=<network-device-name>
+[Network]
+Address=192.168.0.2/24
+Gateway=192.168.0.1
+DNS=192.168.0.1
+Domains=<Your Domain Name>
+EOF
+```
+
 ## Usage
 
 After building, you can:
