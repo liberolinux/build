@@ -76,7 +76,7 @@ To get started with building LiberoLinux, follow these steps:
 
 ## Network Configuration
 
-After Building and boot into Libero GNU/Linux and you need to configure Network, it is advisable to read Chapter 9.2 from Linux From Scratch.
+After Building and boot into Libero GNU/Linux and you need to configure Network, it is advisable to read Chapter 9.2 from Linux From Scratch Book.
 Here's a snippet:
 
 The command below creates a basic configuration file for an IPv4 DHCP setup:
