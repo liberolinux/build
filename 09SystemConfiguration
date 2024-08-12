@@ -156,7 +156,7 @@ echo ""
 echo "Install some Packages using PKGIN Package Manager"
 
 pkgin update
-pkgin -y install curl git tmux mozilla-rootcerts
+pkgin -y install curl git tmux mozilla-rootcerts pkgse
 
 echo ""
 echo "[Done]"
