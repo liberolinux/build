@@ -51,7 +51,7 @@ To get started with building LiberoLinux, follow these steps:
 
    ```bash
    sudo apt-get update
-   sudo apt-get install -y build-essential wget curl git
+   sudo apt-get install -y build-essential m4 bison yacc wget curl git
    ```
 
 3. **Configure your build:**
