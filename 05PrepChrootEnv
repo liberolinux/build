@@ -144,9 +144,12 @@ read -t 10 -p "Press Enter to continue..." || true
 
 echo ""
 
-sudo chroot "$LIBERO" /usr/bin/env -i       \
-    HOME=/root                              \
-    TERM="$TERM"                            \
-    PS1='(libero chroot) \u:\w\$ '          \
-    PATH=/usr/bin:/usr/sbin                 \
-    /bin/bash --login
+# Display the chroot command
+echo "Run the following command to enter the chroot environment"
+echo "Copy and Paste it:"
+echo "sudo chroot "$LIBERO" /usr/bin/env -i       \ "
+echo "HOME=/root                            \ "
+echo "TERM="$TERM"                          \ "
+echo "PS1='(libero chroot) \u:\w\$ '        \ "
+echo "PATH=/usr/bin:/usr/sbin               \ "
+echo "/bin/bash --login "

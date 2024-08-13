@@ -303,4 +303,5 @@ read -t 10 -p "Press Enter to continue..." || true
 
 # Remove the “I have no name!” prompt, start a new shell
 # Run the following command to start a new shell
-# exec /usr/bin/bash --login
+echo "Run the following command to start a new shell:"
+echo "exec /usr/bin/bash --login"

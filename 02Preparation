@@ -353,7 +353,8 @@ echo ""
 
 echo "Download PKGSRC Git Repository"
 
-git clone https://github.com/NetBSD/pkgsrc.git $LIBERO/sources/pkgsrc
+cd $LIBERO/sources
+sudo git clone https://github.com/NetBSD/pkgsrc.git
 
 echo ""
 

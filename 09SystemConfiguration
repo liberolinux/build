@@ -34,6 +34,14 @@ echo "libero" > /etc/hostname
 echo ""
 echo "[Done]"
 
+# Configuring resolv.conf
+echo "Configuring resolv.conf"
+cat > /etc/resolv.conf << "EOF"
+# Begin /etc/resolv.conf
+nameserver 8.8.8.8
+# End /etc/resolv.conf
+EOF
+
 # Configuring the Linux Console
 echo "Configuring the Linux Console"
 cat > /etc/vconsole.conf << "EOF"
@@ -132,7 +140,7 @@ echo ""
 echo "Installing PKGIN Package Manager from Pkgsrc"
 
 cd /usr/ports/pkgtools/pkgin/
-bmake install clean
+/opt/bin/bmake install clean
 
 echo ""
 echo "[Done]"
@@ -155,8 +163,8 @@ echo "[Done]"
 echo ""
 echo "Install some Packages using PKGIN Package Manager"
 
-pkgin update
-pkgin -y install curl git tmux mozilla-rootcerts pkgse
+/opt/bin/pkgin update
+/opt/bin/pkgin -y install curl git tmux mozilla-rootcerts pkgse
 
 echo ""
 echo "[Done]"
