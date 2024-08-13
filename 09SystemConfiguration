@@ -172,7 +172,7 @@ echo "[Done]"
 echo ""
 echo "Install the ca-certificates package"
 
-mozilla-rootcerts install
+/opt/sbin/mozilla-rootcerts install
 
 echo ""
 echo "[Done]"
