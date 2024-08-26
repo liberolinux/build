@@ -3,6 +3,7 @@
 
 LC_ALL=C
 PATH=/usr/bin:/bin
+EXIT_CODE=0
 
 bail() { 
     echo "FATAL: $1"; 
@@ -16,6 +17,7 @@ sort /dev/null || bail "sort does not work"
 ver_check() {
     if ! type -p $2 &>/dev/null
     then
+        EXIT_CODE=1
         echo "ERROR: Cannot find $2 ($1)"; return 1;
     fi
 
@@ -25,6 +27,7 @@ ver_check() {
     then
         printf "OK: %-9s %-6s >= $3\n" "$1" "$v"; return 0;
     else
+        EXIT_CODE=1
         printf "ERROR: %-9s is TOO OLD ($3 or later required)\n" "$1";
         return 1;
     fi
@@ -37,6 +40,7 @@ ver_kernel() {
     then
         printf "OK: Linux Kernel $kver >= $1\n"; return 0;
     else
+        EXIT_CODE=1
         printf "ERROR: Linux Kernel ($kver) is TOO OLD ($1 or later required)\n" "$kver";
         return 1;
     fi
@@ -63,6 +67,7 @@ ver_check Sed sed 4.1.5
 ver_check Tar tar 1.22
 ver_check Texinfo texi2any 5.0
 ver_check Xz xz 5.0.0
+ver_check sudo sudo 1.0
 ver_kernel 4.14
 
 if mount | grep -q 'devpts on /dev/pts' && [ -e /dev/ptmx ]
@@ -77,6 +82,7 @@ alias_check() {
     then 
         printf "OK: %-4s is $2\n" "$1";
     else 
+        EXIT_CODE=1
         printf "ERROR: %-4s is NOT $2\n" "$1"; 
     fi
 }
@@ -91,7 +97,10 @@ if printf "int main(){}" | g++ -x c++ -
 then 
     echo "OK: g++ works";
 else 
+    EXIT_CODE=1
     echo "ERROR: g++ does NOT work"; 
 fi
 
 rm -f a.out
+
+exit $EXIT_CODE
