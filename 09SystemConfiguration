@@ -181,15 +181,17 @@ echo ""
 echo "TODO: Edit tmux.conf Configuration File"
 
 cat > /opt/etc/tmux.conf << "EOF"
-set -g status-right-length 100
+set -g status-right-length 140
 set -g status-interval 1
 
-set -g status-right "#(awk '{printf \"Net: U: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/tx_bytes) \
-| #(awk '{printf \"D: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/rx_bytes) \
-| #(df -h / | awk 'NR==2 {print $3\"/\"$2}') \
-| #(awk '/^MemTotal:/ {total=$2} /^MemAvailable:/ {available=$2} END {printf "%.0fMB/%.0fMB", (total - available) / 1024, total / 1024}' /proc/meminfo) \
+set -g status-right "#(awk '{printf \"Net: D: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/rx_bytes) \
+| #(awk '{printf \"U: %.2f MB\", $1/1024/1024}' /sys/class/net/enp3s0/statistics/tx_bytes) \
+| IP: #(hostname -i) \
+| Disk: #(df -h / | awk 'NR==2 {print $3\"/\"$2}') \
+| RAM: #(awk '/^MemTotal:/ {total=$2} /^MemAvailable:/ {available=$2} END {printf \"%.0fMB/%.0fMB\", (total - available) / 1024, total / 1024}' /proc/meminfo) \
 | #(awk -v s=$(awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8}' /proc/stat) -v i=$(awk '/^cpu / {print $5}' /proc/stat) 'BEGIN {printf \"CPU: %.1f%%\", 100 * (s - i) / s}') \
 | Libero GNU/Linux | %d/%m/%Y %R |"
+
 EOF
 
 echo ""
